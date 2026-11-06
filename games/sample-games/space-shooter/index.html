@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chiến Cơ Ngân Hà</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="/js/gamehub-phaser-audio.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+        html, body { width: 100%; height: 100%; background: #0B0D14; overflow: hidden; font-family: 'Segoe UI', Inter, sans-serif; color: #fff; }
+        #wrap { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        canvas { width: 100%; height: 100%; max-width: 960px; max-height: 540px; background: radial-gradient(circle at center, #181B28 0%, #0B0D14 100%); display: block; touch-action: none; }
+        .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(11,13,20,0.86); text-align: center; padding: 20px; z-index: 20; }
+        .hidden { display: none !important; }
+        h1 { font-size: clamp(24px, 5vw, 44px); font-weight: 900; color: #00D4FF; margin-bottom: 10px; }
+        p { color: #A5ABC0; max-width: 480px; margin-bottom: 20px; line-height: 1.5; }
+        .btn { cursor: pointer; border: none; padding: 14px 34px; border-radius: 14px; font-size: 16px; font-weight: 800; color: #fff; background: linear-gradient(90deg, #7C5CFF, #00D4FF); box-shadow: 0 10px 25px rgba(0,212,255,0.3); }
+        .score-info { font-size: 20px; font-weight: 800; color: #FFB84D; margin-bottom: 16px; }
+        .hud-controls { position: absolute; top: 12px; right: 16px; z-index: 15; display: flex; align-items: center; gap: 8px; }
+        .hud-btn { cursor: pointer; background: rgba(24,27,40,0.88); border: 1px solid rgba(255,255,255,0.15); color: #fff; border-radius: 10px; padding: 6px 12px; font-size: 12px; font-weight: 700; }
+    </style>
+</head>
+<body>
+<div id="wrap">
+    <canvas id="canvas" width="960" height="540"></canvas>
+
+    <div class="hud-controls">
+        <button id="pause-btn" class="hud-btn" type="button">⏸ Tạm dừng (P)</button>
+        <button id="mute-btn" class="hud-btn" type="button">🔊 Âm thanh</button>
+    </div>
+
+    <div id="start-screen" class="overlay">
+        <h1>🚀 CHIẾN CƠ NGÂN HÀ</h1>
+        <p>Di chuyển bằng <strong>Phím Mũi Tên / A-D</strong>, <strong>Chuột</strong> hoặc <strong>Kéo cảm ứng</strong> để né thiên thạch và tiêu diệt phi đội xâm lược!</p>
+        <button id="start-btn" class="btn">▶ XUẤT KÍCH NGAY</button>
+    </div>
+
+    <div id="pause-screen" class="overlay hidden">
+        <h1>⏸ TẠM DỪNG CHIẾN DỊCH</h1>
+        <p>Hệ thống âm thanh và phi thuyền đang chờ lệnh của bạn.</p>
+        <button id="resume-btn" class="btn">▶ TIẾP TỤC CHIẾN ĐẤU</button>
+    </div>
+
+    <div id="over-screen" class="overlay hidden">
+        <h1>NHIỆM VỤ KẾT THÚC</h1>
+        <div class="score-info">Điểm chiến công: <span id="final-score">0</span> • Kỷ lục: <span id="best-score">0</span></div>
+        <p>Hạm đội ngân hà đang cần bạn quay trở lại chiến đấu!</p>
+        <button id="restart-btn" class="btn">🔄 TÁI XUẤT KÍCH</button>
+    </div>
+</div>
+
+<script>
+(() => {
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const startScreen = document.getElementById('start-screen');
+    const pauseScreen = document.getElementById('pause-screen');
+    const overScreen = document.getElementById('over-screen');
+    const finalScoreEl = document.getElementById('final-score');
+    const bestScoreEl = document.getElementById('best-score');
+    const pauseBtn = document.getElementById('pause-btn');
+    const muteBtn = document.getElementById('mute-btn');
+
+    const SPACE_AUDIO_MANIFEST = {
+        bgm_main: { url: 'assets/audio/music/space-bgm.wav', type: 'music', volume: 0.45, loop: true, preload: true },
+        sfx_laser: { url: 'assets/audio/sfx/laser.wav', type: 'sfx', volume: 0.70, loop: false, preload: true },
+        sfx_explosion: { url: 'assets/audio/sfx/explosion.wav', type: 'sfx', volume: 0.80, loop: false, preload: true },
+        sfx_powerup: { url: 'assets/audio/sfx/powerup.wav', type: 'sfx', volume: 0.85, loop: false, preload: true },
+        ambient_space: { url: 'assets/audio/ambient/deep-space.wav', type: 'ambient', volume: 0.25, loop: true, preload: true }
+    };
+
+    const soundCtrl = window.GameHubPhaserSoundController
+        ? new window.GameHubPhaserSoundController({ manifest: SPACE_AUDIO_MANIFEST })
+        : null;
+
+    if (soundCtrl) {
+        soundCtrl.preloadStandalone();
+    }
+
+    let running = false;
+    let paused = false;
+    let score = 0;
+    let best = Number(localStorage.getItem('space_shooter_best') || 0);
+    let wave = 1;
+    let frame = 0;
+    const keys = {};
+
+    const ship = { x: 480, y: 470, r: 22, hp: 3 };
+    let bullets = [];
+    let enemies = [];
+    let stars = Array.from({ length: 65 }, () => ({
+        x: Math.random() * 960,
+        y: Math.random() * 540,
+        s: 1 + Math.random() * 2.5
+    }));
+
+    function startGame() {
+        score = 0;
+        wave = 1;
+        frame = 0;
+        ship.x = 480;
+        ship.hp = 3;
+        bullets = [];
+        enemies = [];
+        running = true;
+        paused = false;
+        startScreen.classList.add('hidden');
+        pauseScreen.classList.add('hidden');
+        overScreen.classList.add('hidden');
+        if (soundCtrl) {
+            soundCtrl.resumeAll();
+            soundCtrl.playMusic('bgm_main');
+        }
+        requestAnimationFrame(loop);
+    }
+
+    function togglePause() {
+        if (!running) return;
+        paused = !paused;
+        if (paused) {
+            pauseScreen.classList.remove('hidden');
+            if (soundCtrl) soundCtrl.pauseAll();
+        } else {
+            pauseScreen.classList.add('hidden');
+            if (soundCtrl) soundCtrl.resumeAll();
+            requestAnimationFrame(loop);
+        }
+    }
+
+    pauseBtn.addEventListener('click', togglePause);
+    document.getElementById('resume-btn').addEventListener('click', togglePause);
+
+    muteBtn.addEventListener('click', () => {
+        if (!soundCtrl) return;
+        soundCtrl.setMute(!soundCtrl.volumes.muted);
+        muteBtn.textContent = soundCtrl.volumes.muted ? '🔇 Đã tắt âm' : '🔊 Âm thanh';
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'KeyP') {
+            e.preventDefault();
+            togglePause();
+            return;
+        }
+        keys[e.code] = true;
+    });
+    window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+    canvas.addEventListener('pointermove', (e) => {
+        if (!running || paused) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        ship.x = Math.max(35, Math.min(canvas.width - 35, (e.clientX - rect.left) * scaleX));
+    });
+
+    document.getElementById('start-btn').addEventListener('click', startGame);
+    document.getElementById('restart-btn').addEventListener('click', startGame);
+
+    function gameOver() {
+        running = false;
+        if (soundCtrl) {
+            soundCtrl.stopMusic();
+            soundCtrl.playSfx('sfx_explosion');
+        }
+        if (score > best) {
+            best = score;
+            try { localStorage.setItem('space_shooter_best', String(best)); } catch (e) {}
+        }
+        finalScoreEl.textContent = score;
+        bestScoreEl.textContent = best;
+        overScreen.classList.remove('hidden');
+
+        try {
+            window.parent.postMessage({ type: 'GAMEHUB_SCORE', score: score }, '*');
+        } catch (e) {}
+    }
+
+    function loop() {
+        if (!running || paused) return;
+        frame++;
+        wave = 1 + Math.floor(score / 250);
+
+        if (keys['ArrowLeft'] || keys['KeyA']) ship.x = Math.max(35, ship.x - 8);
+        if (keys['ArrowRight'] || keys['KeyD']) ship.x = Math.min(canvas.width - 35, ship.x + 8);
+
+        if (frame % 13 === 0) {
+            bullets.push({ x: ship.x - 10, y: ship.y - 20 });
+            bullets.push({ x: ship.x + 10, y: ship.y - 20 });
+            if (soundCtrl && frame % 26 === 0) soundCtrl.playSfx('sfx_laser');
+        }
+
+        const spawnRate = Math.max(20, 52 - wave * 4);
+        if (frame % spawnRate === 0) {
+            enemies.push({
+                x: 40 + Math.random() * (canvas.width - 80),
+                y: -25,
+                r: 18 + Math.random() * 12,
+                vy: 2.3 + Math.random() * 1.5 + wave * 0.35,
+                hp: wave >= 3 ? 2 : 1
+            });
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#ffffff';
+        for (const st of stars) {
+            st.y += st.s;
+            if (st.y > canvas.height) { st.y = 0; st.x = Math.random() * canvas.width; }
+            ctx.fillRect(st.x, st.y, st.s, st.s);
+        }
+
+        ctx.fillStyle = '#00D4FF';
+        ctx.beginPath();
+        ctx.moveTo(ship.x, ship.y - 26);
+        ctx.lineTo(ship.x - 24, ship.y + 22);
+        ctx.lineTo(ship.x, ship.y + 10);
+        ctx.lineTo(ship.x + 24, ship.y + 22);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#FFB84D';
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            const b = bullets[i];
+            b.y -= 11;
+            ctx.fillRect(b.x - 2, b.y, 4, 14);
+            if (b.y < -20) bullets.splice(i, 1);
+        }
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const en = enemies[i];
+            en.y += en.vy;
+
+            ctx.fillStyle = en.hp > 1 ? '#7C5CFF' : '#FF3B6B';
+            ctx.beginPath();
+            ctx.arc(en.x, en.y, en.r, 0, Math.PI * 2);
+            ctx.fill();
+
+            let destroyed = false;
+            for (let j = bullets.length - 1; j >= 0; j--) {
+                const b = bullets[j];
+                if (Math.hypot(en.x - b.x, en.y - b.y) < en.r + 5) {
+                    bullets.splice(j, 1);
+                    en.hp--;
+                    if (en.hp <= 0) {
+                        score += 20;
+                        if (soundCtrl) soundCtrl.playSfx('sfx_explosion');
+                        enemies.splice(i, 1);
+                        destroyed = true;
+                        break;
+                    }
+                }
+            }
+            if (destroyed) continue;
+
+            if (Math.hypot(en.x - ship.x, en.y - ship.y) < en.r + ship.r || en.y > canvas.height + 20) {
+                ship.hp--;
+                enemies.splice(i, 1);
+                if (soundCtrl) soundCtrl.playSfx('sfx_explosion');
+                if (ship.hp <= 0) {
+                    gameOver();
+                    return;
+                }
+            }
+        }
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '800 20px Inter, sans-serif';
+        ctx.fillText(`ĐIỂM: ${score}`, 25, 38);
+        ctx.fillStyle = '#FFB84D';
+        ctx.fillText(`ĐỢT (WAVE): ${wave}`, 200, 38);
+        ctx.fillStyle = '#FF3B6B';
+        ctx.fillText(`GIÁP: ${'❤️'.repeat(ship.hp)}`, 400, 38);
+
+        requestAnimationFrame(loop);
+    }
+})();
+</script>
+</body>
+</html>

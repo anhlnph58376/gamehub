@@ -1,0 +1,16 @@
+{
+    "name": "Xếp Khối Tinh Thể",
+    "description": "Trò chơi giải đố trí tuệ gây nghiện! Lựa chọn và đặt các khối tinh thể đa sắc màu vào bảng lưới 8x8 để lấp đầy các hàng ngang hoặc cột dọc và ghi điểm chuỗi Combo khổng lồ.",
+    "instructions": "Click chuột hoặc Chạm vào khối hình bên phải rồi Click/Chạm vào vị trí hợp lệ trên bảng lưới 8x8 để đặt khối. Lấp đầy hàng ngang hoặc cột dọc để xóa khối và nhân điểm Combo!",
+    "version": "1.0.0",
+    "author": "GameHub Studio",
+    "orientation": "landscape",
+    "mobile_support": true,
+    "thumbnail": "thumb.svg",
+    "controls": {
+        "keyboard": "Phím 1, 2, 3 để chọn nhanh khối hình",
+        "mouse": "Click chọn khối hình và Click vào ô lưới để đặt",
+        "touch": "Chạm chọn khối hình và chạm vào ô lưới trên màn hình"
+    }
+}
+

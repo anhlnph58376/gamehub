@@ -1,0 +1,16 @@
+{
+    "name": "Chiến Cơ Ngân Hà",
+    "description": "Điều khiển phi thuyền chiến đấu xuyên qua vành đai thiên thạch ngân hà, bắn hạ các đợt tấn công của hạm đội ngoài hành tinh và bảo vệ trạm không gian!",
+    "instructions": "Dùng phím Mũi tên Trái/Phải (hoặc A/D), di chuyển Chuột hoặc Kéo ngón tay trên màn hình cảm ứng để điều khiển tàu vũ trụ. Tàu tự động khai hỏa laser liên thanh và bạn có thể nhấn Space để bắn đạn đôi!",
+    "version": "1.0.0",
+    "author": "GameHub Studio",
+    "orientation": "landscape",
+    "mobile_support": true,
+    "thumbnail": "thumb.svg",
+    "controls": {
+        "keyboard": "Mũi tên Trái/Phải hoặc A/D để di chuyển, Space để bắn tăng cường",
+        "mouse": "Di chuyển chuột để lái phi thuyền",
+        "touch": "Chạm và kéo ngón tay trên màn hình để điều khiển"
+    }
+}
+

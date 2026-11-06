@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Xếp Khối Tinh Thể</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="/js/gamehub-phaser-audio.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+        html, body { width: 100%; height: 100%; background: #10121B; overflow: hidden; font-family: 'Segoe UI', Inter, sans-serif; color: #fff; }
+        #wrap { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        canvas { width: 100%; height: 100%; max-width: 960px; max-height: 540px; background: #10121B; display: block; touch-action: manipulation; }
+        .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(16,18,27,0.88); text-align: center; padding: 20px; z-index: 20; }
+        .hidden { display: none !important; }
+        h1 { font-size: clamp(24px, 5vw, 42px); font-weight: 900; color: #FFB84D; margin-bottom: 10px; }
+        p { color: #A5ABC0; max-width: 480px; margin-bottom: 20px; line-height: 1.5; }
+        .btn { cursor: pointer; border: none; padding: 14px 34px; border-radius: 14px; font-size: 16px; font-weight: 800; color: #fff; background: linear-gradient(90deg, #7C5CFF, #00D4FF); }
+        .score-info { font-size: 20px; font-weight: 800; color: #00D4FF; margin-bottom: 16px; }
+        .hud-controls { position: absolute; top: 12px; right: 16px; z-index: 15; display: flex; align-items: center; gap: 8px; }
+        .hud-btn { cursor: pointer; background: rgba(24,27,40,0.88); border: 1px solid rgba(255,255,255,0.15); color: #fff; border-radius: 10px; padding: 6px 12px; font-size: 12px; font-weight: 700; }
+    </style>
+</head>
+<body>
+<div id="wrap">
+    <canvas id="canvas" width="960" height="540"></canvas>
+
+    <div class="hud-controls">
+        <button id="pause-btn" class="hud-btn" type="button">⏸ Tạm dừng (P)</button>
+        <button id="mute-btn" class="hud-btn" type="button">🔊 Âm thanh</button>
+    </div>
+
+    <div id="start-screen" class="overlay">
+        <h1>🧩 XẾP KHỐI TINH THỂ 8x8</h1>
+        <p>Chọn 1 trong 3 khối tinh thể bên phải rồi chạm vào bảng lưới 8x8 để ghép khối. Lấp đầy hàng ngang hoặc cột dọc để ghi điểm lớn!</p>
+        <button id="start-btn" class="btn">▶ BẮT ĐẦU GIẢI ĐỐ</button>
+    </div>
+
+    <div id="pause-screen" class="overlay hidden">
+        <h1>⏸ TẠM DỪNG GIẢI ĐỐ</h1>
+        <p>Nhạc nền và bàn cờ đang được tạm dừng.</p>
+        <button id="resume-btn" class="btn">▶ TIẾP TỤC CHƠI</button>
+    </div>
+
+    <div id="over-screen" class="overlay hidden">
+        <h1>HẾT NƯỚC ĐI!</h1>
+        <div class="score-info">Tổng điểm: <span id="final-score">0</span> • Kỷ lục: <span id="best-score">0</span></div>
+        <p>Không còn vị trí trống hợp lệ cho các khối hiện tại. Thử sức lại ngay!</p>
+        <button id="restart-btn" class="btn">🔄 CHƠI VÁN MỚI</button>
+    </div>
+</div>
+
+<script>
+(() => {
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const startScreen = document.getElementById('start-screen');
+    const pauseScreen = document.getElementById('pause-screen');
+    const overScreen = document.getElementById('over-screen');
+    const finalScoreEl = document.getElementById('final-score');
+    const bestScoreEl = document.getElementById('best-score');
+    const pauseBtn = document.getElementById('pause-btn');
+    const muteBtn = document.getElementById('mute-btn');
+
+    const PUZZLE_AUDIO_MANIFEST = {
+        bgm_main: { url: 'assets/audio/music/puzzle-bgm.wav', type: 'music', volume: 0.42, loop: true, preload: true },
+        sfx_place: { url: 'assets/audio/sfx/place.wav', type: 'sfx', volume: 0.80, loop: false, preload: true },
+        sfx_clear: { url: 'assets/audio/sfx/clear-line.wav', type: 'sfx', volume: 0.88, loop: false, preload: true },
+        sfx_gameover: { url: 'assets/audio/sfx/gameover.wav', type: 'sfx', volume: 0.80, loop: false, preload: true },
+        ambient_zen: { url: 'assets/audio/ambient/zen-hum.wav', type: 'ambient', volume: 0.22, loop: true, preload: true }
+    };
+
+    const soundCtrl = window.GameHubPhaserSoundController
+        ? new window.GameHubPhaserSoundController({ manifest: PUZZLE_AUDIO_MANIFEST })
+        : null;
+
+    if (soundCtrl) {
+        soundCtrl.preloadStandalone();
+    }
+
+    const GRID_SIZE = 8;
+    const CELL = 52;
+    const BOARD_X = 70;
+    const BOARD_Y = 75;
+
+    const SHAPES = [
+        { cells: [[0,0]], color: '#00D4FF' },
+        { cells: [[0,0],[1,0]], color: '#7C5CFF' },
+        { cells: [[0,0],[0,1]], color: '#7C5CFF' },
+        { cells: [[0,0],[1,0],[2,0]], color: '#FFB84D' },
+        { cells: [[0,0],[0,1],[0,2]], color: '#FFB84D' },
+        { cells: [[0,0],[1,0],[0,1],[1,1]], color: '#10B981' },
+        { cells: [[0,0],[1,0],[0,1]], color: '#FF3B6B' }
+    ];
+
+    let board = [];
+    let pieces = [];
+    let selectedPiece = 0;
+    let score = 0;
+    let best = Number(localStorage.getItem('puzzle_blocks_best') || 0);
+    let hoverCell = null;
+    let paused = false;
+
+    function initGame() {
+        board = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
+        score = 0;
+        selectedPiece = 0;
+        paused = false;
+        spawnPieces();
+        startScreen.classList.add('hidden');
+        pauseScreen.classList.add('hidden');
+        overScreen.classList.add('hidden');
+        if (soundCtrl) {
+            soundCtrl.resumeAll();
+            soundCtrl.playMusic('bgm_main');
+        }
+        draw();
+    }
+
+    function togglePause() {
+        paused = !paused;
+        if (paused) {
+            pauseScreen.classList.remove('hidden');
+            if (soundCtrl) soundCtrl.pauseAll();
+        } else {
+            pauseScreen.classList.add('hidden');
+            if (soundCtrl) soundCtrl.resumeAll();
+            draw();
+        }
+    }
+
+    pauseBtn.addEventListener('click', togglePause);
+    document.getElementById('resume-btn').addEventListener('click', togglePause);
+
+    muteBtn.addEventListener('click', () => {
+        if (!soundCtrl) return;
+        soundCtrl.setMute(!soundCtrl.volumes.muted);
+        muteBtn.textContent = soundCtrl.volumes.muted ? '🔇 Đã tắt âm' : '🔊 Âm thanh';
+    });
+
+    function spawnPieces() {
+        pieces = [0, 1, 2].map(() => {
+            const tpl = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+            return { cells: tpl.cells, color: tpl.color, used: false };
+        });
+        selectedPiece = pieces.findIndex(p => !p.used);
+    }
+
+    function canPlace(piece, gx, gy) {
+        if (!piece || piece.used) return false;
+        for (const [dx, dy] of piece.cells) {
+            const x = gx + dx;
+            const y = gy + dy;
+            if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE || board[y][x] !== null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function hasAnyValidMove() {
+        for (const p of pieces) {
+            if (p.used) continue;
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (canPlace(p, x, y)) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function placePiece(gx, gy) {
+        if (paused) return;
+        const piece = pieces[selectedPiece];
+        if (!canPlace(piece, gx, gy)) return;
+
+        for (const [dx, dy] of piece.cells) {
+            board[gy + dy][gx + dx] = piece.color;
+        }
+        piece.used = true;
+        score += piece.cells.length * 10;
+        if (soundCtrl) soundCtrl.playSfx('sfx_place');
+
+        const fullRows = [];
+        const fullCols = [];
+        for (let r = 0; r < GRID_SIZE; r++) {
+            if (board[r].every(c => c !== null)) fullRows.push(r);
+        }
+        for (let c = 0; c < GRID_SIZE; c++) {
+            if (board.every(row => row[c] !== null)) fullCols.push(c);
+        }
+
+        for (const r of fullRows) {
+            for (let c = 0; c < GRID_SIZE; c++) board[r][c] = null;
+        }
+        for (const c of fullCols) {
+            for (let r = 0; r < GRID_SIZE; r++) board[r][c] = null;
+        }
+
+        const cleared = fullRows.length + fullCols.length;
+        if (cleared > 0) {
+            score += cleared * 100 * cleared;
+            if (soundCtrl) soundCtrl.playSfx('sfx_clear');
+        }
+
+        if (pieces.every(p => p.used)) {
+            spawnPieces();
+        } else {
+            selectedPiece = pieces.findIndex(p => !p.used);
+        }
+
+        draw();
+
+        if (!hasAnyValidMove()) {
+            if (soundCtrl) {
+                soundCtrl.stopMusic();
+                soundCtrl.playSfx('sfx_gameover');
+            }
+            if (score > best) {
+                best = score;
+                try { localStorage.setItem('puzzle_blocks_best', String(best)); } catch (e) {}
+            }
+            finalScoreEl.textContent = score;
+            bestScoreEl.textContent = best;
+            overScreen.classList.remove('hidden');
+            try {
+                window.parent.postMessage({ type: 'GAMEHUB_SCORE', score: score }, '*');
+            } catch (e) {}
+        }
+    }
+
+    canvas.addEventListener('pointermove', (e) => {
+        if (paused) return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+        const gx = Math.floor((mx - BOARD_X) / CELL);
+        const gy = Math.floor((my - BOARD_Y) / CELL);
+        if (gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
+            hoverCell = { x: gx, y: gy };
+        } else {
+            hoverCell = null;
+        }
+        draw();
+    });
+
+    canvas.addEventListener('pointerdown', (e) => {
+        if (paused) return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+        if (mx >= 560) {
+            const idx = Math.floor((my - 90) / 135);
+            if (idx >= 0 && idx < 3 && pieces[idx] && !pieces[idx].used) {
+                selectedPiece = idx;
+                if (soundCtrl) soundCtrl.playSfx('sfx_place');
+                draw();
+                return;
+            }
+        }
+
+        const gx = Math.floor((mx - BOARD_X) / CELL);
+        const gy = Math.floor((my - BOARD_Y) / CELL);
+        if (gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
+            placePiece(gx, gy);
+        }
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'KeyP') {
+            e.preventDefault();
+            togglePause();
+            return;
+        }
+        if (e.key === '1' && pieces[0] && !pieces[0].used) { selectedPiece = 0; draw(); }
+        if (e.key === '2' && pieces[1] && !pieces[1].used) { selectedPiece = 1; draw(); }
+        if (e.key === '3' && pieces[2] && !pieces[2].used) { selectedPiece = 2; draw(); }
+    });
+
+    document.getElementById('start-btn').addEventListener('click', initGame);
+    document.getElementById('restart-btn').addEventListener('click', initGame);
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '800 22px Inter, sans-serif';
+        ctx.fillText(`ĐIỂM: ${score}`, BOARD_X, 46);
+        ctx.fillStyle = '#FFB84D';
+        ctx.fillText(`KỶ LỤC: ${Math.max(best, score)}`, BOARD_X + 210, 46);
+
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                const x = BOARD_X + c * CELL;
+                const y = BOARD_Y + r * CELL;
+                ctx.fillStyle = board[r][c] || '#181B28';
+                ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                ctx.strokeRect(x + 2, y + 2, CELL - 4, CELL - 4);
+            }
+        }
+
+        const currentPiece = pieces[selectedPiece];
+        if (hoverCell && currentPiece && !currentPiece.used) {
+            const valid = canPlace(currentPiece, hoverCell.x, hoverCell.y);
+            ctx.fillStyle = valid ? 'rgba(0, 212, 255, 0.45)' : 'rgba(255, 59, 107, 0.35)';
+            for (const [dx, dy] of currentPiece.cells) {
+                const px = hoverCell.x + dx;
+                const py = hoverCell.y + dy;
+                if (px >= 0 && px < GRID_SIZE && py >= 0 && py < GRID_SIZE) {
+                    ctx.fillRect(BOARD_X + px * CELL + 2, BOARD_Y + py * CELL + 2, CELL - 4, CELL - 4);
+                }
+            }
+        }
+
+        ctx.fillStyle = '#A5ABC0';
+        ctx.font = '700 15px Inter, sans-serif';
+        ctx.fillText('CHỌN KHỐI TINH THỂ:', 580, 56);
+
+        pieces.forEach((p, idx) => {
+            const boxX = 580;
+            const boxY = 85 + idx * 135;
+            ctx.fillStyle = idx === selectedPiece ? '#202437' : '#181B28';
+            ctx.fillRect(boxX, boxY, 290, 115);
+            ctx.strokeStyle = idx === selectedPiece ? '#00D4FF' : 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(boxX, boxY, 290, 115);
+
+            if (!p.used) {
+                ctx.fillStyle = p.color;
+                for (const [dx, dy] of p.cells) {
+                    ctx.fillRect(boxX + 35 + dx * 30, boxY + 24 + dy * 30, 26, 26);
+                }
+            } else {
+                ctx.fillStyle = '#A5ABC0';
+                ctx.font = '600 13px Inter, sans-serif';
+                ctx.fillText('Đã đặt', boxX + 115, boxY + 62);
+            }
+        });
+    }
+})();
+</script>
+</body>
+</html>

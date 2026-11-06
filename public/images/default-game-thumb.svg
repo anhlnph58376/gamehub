@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#181B28"/>
+      <stop offset="50%" stop-color="#202437"/>
+      <stop offset="100%" stop-color="#10121B"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7C5CFF"/>
+      <stop offset="100%" stop-color="#00D4FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <circle cx="540" cy="60" r="140" fill="#7C5CFF" opacity="0.12"/>
+  <circle cx="100" cy="300" r="160" fill="#00D4FF" opacity="0.1"/>
+  <rect x="250" y="110" width="140" height="90" rx="28" fill="none" stroke="url(#accent)" stroke-width="6"/>
+  <line x1="290" y1="140" x2="290" y2="170" stroke="#00D4FF" stroke-width="6" stroke-linecap="round"/>
+  <line x1="275" y1="155" x2="305" y2="155" stroke="#00D4FF" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="350" cy="145" r="6" fill="#FFB84D"/>
+  <circle cx="366" cy="162" r="6" fill="#7C5CFF"/>
+  <text x="320" y="250" font-family="Inter, sans-serif" font-size="24" font-weight="800" fill="#FFFFFF" text-anchor="middle" letter-spacing="2">GAMEHUB HTML5</text>
+  <text x="320" y="280" font-family="Inter, sans-serif" font-size="14" fill="#A5ABC0" text-anchor="middle">CHƠI NGAY TRÊN TRÌNH DUYỆT</text>
+</svg>
+

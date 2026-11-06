@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pixel Runner Siêu Tốc</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="/js/gamehub-phaser-audio.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+        html, body { width: 100%; height: 100%; background: #10121B; overflow: hidden; font-family: 'Segoe UI', Inter, sans-serif; color: #fff; }
+        #game-wrap { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        canvas { width: 100%; height: 100%; max-width: 960px; max-height: 540px; background: linear-gradient(180deg, #10121B 0%, #1E1B3A 100%); border-radius: 12px; display: block; touch-action: manipulation; }
+        .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(16,18,27,0.85); backdrop-filter: blur(6px); text-align: center; padding: 20px; z-index: 20; }
+        .hidden { display: none !important; }
+        h1 { font-size: clamp(24px, 5vw, 44px); font-weight: 900; background: linear-gradient(90deg, #7C5CFF, #00D4FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+        p { color: #A5ABC0; font-size: clamp(13px, 2.2vw, 16px); max-width: 460px; margin-bottom: 20px; line-height: 1.5; }
+        .btn { cursor: pointer; border: none; padding: 14px 34px; border-radius: 14px; font-size: 16px; font-weight: 800; color: #fff; background: linear-gradient(90deg, #7C5CFF, #00D4FF); box-shadow: 0 10px 25px rgba(124,92,255,0.4); transition: transform 0.15s; }
+        .btn:active { transform: scale(0.95); }
+        .score-box { font-size: 20px; font-weight: 800; color: #FFB84D; margin-bottom: 16px; }
+        .hud-controls { position: absolute; top: 12px; right: 16px; z-index: 15; display: flex; align-items: center; gap: 8px; }
+        .hud-btn { cursor: pointer; background: rgba(24,27,40,0.88); border: 1px solid rgba(255,255,255,0.15); color: #fff; border-radius: 10px; padding: 6px 12px; font-size: 12px; font-weight: 700; }
+        .hud-btn:hover { border-color: #00D4FF; }
+    </style>
+</head>
+<body>
+<div id="game-wrap">
+    <canvas id="canvas" width="960" height="540"></canvas>
+
+    <!-- In-Game Audio & Pause HUD -->
+    <div class="hud-controls">
+        <button id="pause-btn" class="hud-btn" type="button">⏸ Tạm dừng (P)</button>
+        <button id="mute-btn" class="hud-btn" type="button">🔊 Âm thanh</button>
+    </div>
+
+    <div id="start-screen" class="overlay">
+        <h1>PIXEL RUNNER SIÊU TỐC</h1>
+        <p>Nhấn <strong>Phím Space / Mũi tên Lên</strong>, <strong>Click Chuột</strong> hoặc <strong>Chạm màn hình</strong> để Nhảy & Nhảy đôi vượt qua gai năng lượng!</p>
+        <button id="start-btn" class="btn">▶ BẮT ĐẦU CHƠI</button>
+    </div>
+
+    <div id="pause-screen" class="overlay hidden">
+        <h1>⏸ ĐANG TẠM DỪNG</h1>
+        <p>Nhạc nền và trò chơi đã được tạm dừng đồng bộ.</p>
+        <button id="resume-btn" class="btn">▶ TIẾP TỤC CHƠI</button>
+    </div>
+
+    <div id="over-screen" class="overlay hidden">
+        <h1>GAME OVER</h1>
+        <div class="score-box">Điểm đạt được: <span id="final-score">0</span> • Kỷ lục: <span id="best-score">0</span></div>
+        <p>Tốc độ của bạn rất đáng nể! Hãy thử lại để phá kỷ lục mới nhé.</p>
+        <button id="restart-btn" class="btn">🔄 CHƠI LẠI NGAY</button>
+    </div>
+</div>
+
+<script>
+(() => {
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const startScreen = document.getElementById('start-screen');
+    const pauseScreen = document.getElementById('pause-screen');
+    const overScreen = document.getElementById('over-screen');
+    const finalScoreEl = document.getElementById('final-score');
+    const bestScoreEl = document.getElementById('best-score');
+    const pauseBtn = document.getElementById('pause-btn');
+    const muteBtn = document.getElementById('mute-btn');
+
+    // Khởi tạo hệ thống âm thanh độc lập của Pixel Runner (Phaser 3 Sound Manager + Preload)
+    const RUNNER_AUDIO_MANIFEST = {
+        bgm_main: { url: 'assets/audio/music/runner-bgm.wav', type: 'music', volume: 0.45, loop: true, preload: true },
+        sfx_jump: { url: 'assets/audio/sfx/jump.wav', type: 'sfx', volume: 0.80, loop: false, preload: true },
+        sfx_score: { url: 'assets/audio/sfx/score.wav', type: 'sfx', volume: 0.85, loop: false, preload: true },
+        sfx_gameover: { url: 'assets/audio/sfx/gameover.wav', type: 'sfx', volume: 0.85, loop: false, preload: true },
+        ambient_wind: { url: 'assets/audio/ambient/cyber-wind.wav', type: 'ambient', volume: 0.25, loop: true, preload: true }
+    };
+
+    const soundCtrl = window.GameHubPhaserSoundController
+        ? new window.GameHubPhaserSoundController({ manifest: RUNNER_AUDIO_MANIFEST })
+        : null;
+
+    if (soundCtrl) {
+        soundCtrl.preloadStandalone();
+    }
+
+    const GROUND_Y = 440;
+    let running = false;
+    let paused = false;
+    let score = 0;
+    let highScore = Number(localStorage.getItem('pixel_runner_best') || 0);
+    let speed = 6.5;
+    let frame = 0;
+
+    const player = { x: 130, y: GROUND_Y - 48, w: 48, h: 48, vy: 0, jumps: 0, maxJumps: 2 };
+    let obstacles = [];
+    let coins = [];
+    let particles = [];
+
+    function resetGame() {
+        score = 0;
+        speed = 6.5;
+        frame = 0;
+        player.y = GROUND_Y - player.h;
+        player.vy = 0;
+        player.jumps = 0;
+        obstacles = [];
+        coins = [];
+        particles = [];
+        running = true;
+        paused = false;
+        startScreen.classList.add('hidden');
+        pauseScreen.classList.add('hidden');
+        overScreen.classList.add('hidden');
+        if (soundCtrl) {
+            soundCtrl.resumeAll();
+            soundCtrl.playMusic('bgm_main');
+        }
+        requestAnimationFrame(loop);
+    }
+
+    function togglePause() {
+        if (!running) return;
+        paused = !paused;
+        if (paused) {
+            pauseScreen.classList.remove('hidden');
+            if (soundCtrl) soundCtrl.pauseAll();
+        } else {
+            pauseScreen.classList.add('hidden');
+            if (soundCtrl) soundCtrl.resumeAll();
+            requestAnimationFrame(loop);
+        }
+    }
+
+    pauseBtn.addEventListener('click', togglePause);
+    document.getElementById('resume-btn').addEventListener('click', togglePause);
+
+    muteBtn.addEventListener('click', () => {
+        if (!soundCtrl) return;
+        soundCtrl.setMute(!soundCtrl.volumes.muted);
+        muteBtn.textContent = soundCtrl.volumes.muted ? '🔇 Đã tắt âm' : '🔊 Âm thanh';
+    });
+
+    function jump() {
+        if (!running || paused) return;
+        if (player.jumps < player.maxJumps) {
+            player.vy = -13.8;
+            player.jumps++;
+            if (soundCtrl) soundCtrl.playSfx('sfx_jump');
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: player.x + player.w / 2,
+                    y: player.y + player.h,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: Math.random() * 3,
+                    life: 20,
+                    color: '#00D4FF'
+                });
+            }
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'KeyP') {
+            e.preventDefault();
+            togglePause();
+            return;
+        }
+        if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) {
+            e.preventDefault();
+            jump();
+        }
+    });
+
+    canvas.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        jump();
+    });
+
+    document.getElementById('start-btn').addEventListener('click', resetGame);
+    document.getElementById('restart-btn').addEventListener('click', resetGame);
+
+    function endGame() {
+        running = false;
+        if (soundCtrl) {
+            soundCtrl.stopMusic();
+            soundCtrl.playSfx('sfx_gameover');
+        }
+        const finalPoints = Math.floor(score);
+        if (finalPoints > highScore) {
+            highScore = finalPoints;
+            try { localStorage.setItem('pixel_runner_best', String(highScore)); } catch (e) {}
+        }
+        finalScoreEl.textContent = finalPoints;
+        bestScoreEl.textContent = highScore;
+        overScreen.classList.remove('hidden');
+
+        try {
+            window.parent.postMessage({ type: 'GAMEHUB_SCORE', score: finalPoints }, '*');
+        } catch (e) {}
+    }
+
+    function loop() {
+        if (!running || paused) return;
+        frame++;
+        score += 0.2;
+        speed = Math.min(14, 6.5 + Math.floor(score / 120) * 0.6);
+
+        player.vy += 0.68;
+        player.y += player.vy;
+        if (player.y >= GROUND_Y - player.h) {
+            player.y = GROUND_Y - player.h;
+            player.vy = 0;
+            player.jumps = 0;
+        }
+
+        if (frame % Math.max(48, Math.floor(95 - speed * 3)) === 0) {
+            const h = 38 + Math.random() * 28;
+            obstacles.push({ x: canvas.width + 20, y: GROUND_Y - h, w: 34, h: h });
+        }
+
+        if (frame % 85 === 0) {
+            coins.push({ x: canvas.width + 20, y: GROUND_Y - 95 - Math.random() * 90, r: 12 });
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#181B28';
+        ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
+        ctx.strokeStyle = '#00D4FF';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND_Y);
+        ctx.lineTo(canvas.width, GROUND_Y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#00D4FF';
+        ctx.fillRect(player.x, player.y, player.w, player.h);
+        ctx.fillStyle = '#10121B';
+        ctx.fillRect(player.x + 24, player.y + 12, 16, 10);
+
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            const ob = obstacles[i];
+            ob.x -= speed;
+            ctx.fillStyle = '#FF3B6B';
+            ctx.beginPath();
+            ctx.moveTo(ob.x, GROUND_Y);
+            ctx.lineTo(ob.x + ob.w / 2, ob.y);
+            ctx.lineTo(ob.x + ob.w, GROUND_Y);
+            ctx.closePath();
+            ctx.fill();
+
+            if (
+                player.x + 6 < ob.x + ob.w - 6 &&
+                player.x + player.w - 6 > ob.x + 6 &&
+                player.y + player.h - 4 > ob.y + 6
+            ) {
+                endGame();
+                return;
+            }
+
+            if (ob.x + ob.w < 0) obstacles.splice(i, 1);
+        }
+
+        for (let i = coins.length - 1; i >= 0; i--) {
+            const c = coins[i];
+            c.x -= speed;
+            ctx.fillStyle = '#FFB84D';
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+            ctx.fill();
+
+            const dx = (player.x + player.w / 2) - c.x;
+            const dy = (player.y + player.h / 2) - c.y;
+            if (Math.hypot(dx, dy) < c.r + player.w / 2) {
+                score += 25;
+                if (soundCtrl) soundCtrl.playSfx('sfx_score');
+                coins.splice(i, 1);
+                continue;
+            }
+            if (c.x + c.r < 0) coins.splice(i, 1);
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life--;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, 4, 4);
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '800 22px Inter, sans-serif';
+        ctx.fillText(`ĐIỂM: ${Math.floor(score)}`, 28, 42);
+        ctx.fillStyle = '#FFB84D';
+        ctx.fillText(`KỶ LỤC: ${Math.max(highScore, Math.floor(score))}`, 220, 42);
+
+        requestAnimationFrame(loop);
+    }
+})();
+</script>
+</body>
+</html>

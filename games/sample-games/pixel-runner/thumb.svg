@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#10121B"/>
+      <stop offset="100%" stop-color="#22194D"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#sky)"/>
+  <circle cx="520" cy="80" r="45" fill="#FFB84D" opacity="0.85"/>
+  <rect x="0" y="290" width="640" height="70" fill="#181B28"/>
+  <line x1="0" y1="290" x2="640" y2="290" stroke="#00D4FF" stroke-width="4"/>
+  <rect x="140" y="220" width="46" height="46" rx="8" fill="#00D4FF"/>
+  <rect x="155" y="232" width="22" height="10" rx="3" fill="#10121B"/>
+  <polygon points="360,290 385,235 410,290" fill="#FF3B6B"/>
+  <polygon points="415,290 435,248 455,290" fill="#FF3B6B"/>
+  <circle cx="275" cy="180" r="14" fill="#FFB84D"/>
+  <text x="40" y="75" font-family="Inter, sans-serif" font-size="38" font-weight="900" fill="#FFFFFF">PIXEL RUNNER</text>
+  <text x="40" y="110" font-family="Inter, sans-serif" font-size="18" font-weight="700" fill="#00D4FF">SIÊU TỐC NEON • HTML5</text>
+</svg>
+

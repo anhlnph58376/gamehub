@@ -1,0 +1,16 @@
+{
+    "name": "Pixel Runner Siêu Tốc",
+    "description": "Điều khiển chiến binh Cyber chạy nước rút qua thành phố Neon, nhảy đôi vượt qua các chướng ngại vật năng lượng và thu thập tinh thể ánh sáng để lập kỷ lục điểm số mới!",
+    "instructions": "Nhấn phím Space / Mũi tên Lên / Click chuột hoặc Chạm vào màn hình điện thoại để Nhảy (hỗ trợ Nhảy đôi 2 lần liên tiếp trên không). Tốc độ sẽ tăng dần theo điểm số!",
+    "version": "1.0.0",
+    "author": "GameHub Studio",
+    "orientation": "landscape",
+    "mobile_support": true,
+    "thumbnail": "thumb.svg",
+    "controls": {
+        "keyboard": "Phím Space / Mũi tên Lên / W để Nhảy & Nhảy đôi",
+        "mouse": "Click chuột trái để Nhảy",
+        "touch": "Chạm trực tiếp vào màn hình để Nhảy"
+    }
+}
+

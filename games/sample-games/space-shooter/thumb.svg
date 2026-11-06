@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <rect width="640" height="360" fill="#0D0F18"/>
+  <circle cx="120" cy="70" r="3" fill="#FFFFFF"/>
+  <circle cx="480" cy="50" r="2" fill="#00D4FF"/>
+  <circle cx="550" cy="240" r="3" fill="#FFB84D"/>
+  <polygon points="320,240 285,310 320,292 355,310" fill="#00D4FF"/>
+  <rect x="317" y="150" width="6" height="65" rx="3" fill="#FFB84D"/>
+  <circle cx="320" cy="95" r="28" fill="#7C5CFF"/>
+  <circle cx="220" cy="125" r="20" fill="#FF3B6B"/>
+  <circle cx="420" cy="125" r="20" fill="#FF3B6B"/>
+  <text x="40" y="65" font-family="Inter, sans-serif" font-size="36" font-weight="900" fill="#FFFFFF">SPACE SHOOTER</text>
+  <text x="40" y="100" font-family="Inter, sans-serif" font-size="18" font-weight="700" fill="#7C5CFF">CHIẾN CƠ NGÂN HÀ • HTML5</text>
+</svg>
+

@@ -60,11 +60,36 @@
 - [x] Đánh dấu hoàn thành Phase 8
 
 ## PHASE 9: Kiểm thử tự động & End-to-End
-- [x] Viết và chạy Feature & Unit Tests (Auth, RBAC, CRUD, Upload ZIP hợp lệ/Zip Slip/File PHP độc hại, E2E luồng Admin upload -> User chơi & đánh giá)
-- [x] Đảm bảo 100% tests PASS (`13 passed, 54 assertions`)
+- [x] Viết và chạy Feature & Unit Tests (Auth, RBAC, CRUD, Upload ZIP hợp lệ/Zip Slip/File PHP độc hại, E2E luồng Admin upload -> User chơi & đánh giá, Hệ thống Âm thanh)
+- [x] Đảm bảo 100% tests PASS (`18 passed, 128 assertions`)
 - [x] Đánh dấu hoàn thành Phase 9
 
 ## PHASE 10: Tài liệu hóa & Nghiệm thu
 - [x] Viết đầy đủ 9 tài liệu tiếng Việt: `README.md`, `PRD.md`, `DATABASE.md`, `ARCHITECTURE.md`, `API.md`, `SECURITY.md`, `DEPLOYMENT.md`, `USER_GUIDE.md`, `ADMIN_GUIDE.md`
 - [x] Rà soát toàn diện Zero-Placeholder và nghiệm thu dự án
 - [x] Đánh dấu hoàn thành Phase 10
+
+## PHASE 11: Nâng cấp UI/UX Chuẩn CrazyGames / Poki Gaming Portal
+- [x] Chuẩn hóa Design System Dark Gaming (`#10121B`, `#181B28`, `#202437`, Primary `#7C5CFF`, Secondary `#00D4FF`, Highlight `#FFB84D`, Font `Plus Jakarta Sans` & `Inter`)
+- [x] Nâng cấp Header & Navigation: Instant Search có phím tắt `Ctrl + K`, Menu Danh mục, Game mới, Game phổ biến, nút `🎲 Ngẫu nhiên` (`/ngau-nhien`), Mobile Bottom Navigation Bar & Slide-out Drawer
+- [x] Nâng cấp Homepage: Hero Banner có hiệu ứng chuyển động & nút Play pulse, hàng Quick Categories trượt ngang, lưới Game 5 cột với Skeleton Loading, Hover Scale, Glow Border & nút `"▶ Chơi Ngay"`
+- [x] Nâng cấp Game Player & Chi tiết Game: Hướng dẫn điều khiển bằng phím bấm 3D trực quan (`[W][A][S][D]`, `[Space]`), thanh công cụ Fullscreen/Âm thanh/Tải lại/Tạm dừng/Báo lỗi/Tim, và đánh giá 1-5 sao AJAX không tải lại trang
+- [x] Đánh dấu hoàn thành Phase 11
+
+## PHASE 12: Hệ thống Âm thanh Toàn diện (GameHub Master Audio System)
+- [x] Thiết kế & migrate 3 bảng CSDL âm thanh: `audio_assets`, `game_audio_assets`, `user_audio_settings`
+- [x] Xây dựng `AudioSynthesizerService` & `AudioUploadService` (tổng hợp WAV PCM 16-bit có ADSR envelope, kiểm tra Magic Bytes MP3/OGG/WAV, chặn tuyệt đối file thực thi, quản lý bản quyền & giấy phép)
+- [x] Tích hợp Website Audio System bằng Howler.js (`public/js/gamehub-audio.js`): Click, Hover, Success/Error Notification, Modal Open/Close, Nhạc nền tự động chuyển đổi mượt theo khu vực (Fade-in/Fade-out), chặn Autoplay trước khi người dùng tương tác
+- [x] Tích hợp Global Audio Settings Popover (Master, BGM, UI, Game Volume, Mute All) đồng bộ hai chiều giữa `localStorage` (khách) và `user_audio_settings` (tài khoản đăng nhập)
+- [x] Xây dựng Phaser 3 Audio SDK (`public/js/gamehub-phaser-audio.js`) & cấu trúc `assets/audio/{music,sfx,ambient}/` độc lập cho cả 3 game mẫu (`pixel-runner`, `space-shooter`, `puzzle-blocks`), hỗ trợ Pause/Resume/Stop khi rời trang
+- [x] Xây dựng trang Quản trị Âm thanh (`/admin/audio`) cho phép Upload, nghe thử trực tiếp, phân loại, gắn với Game/Website và quản lý giấy phép bản quyền
+- [x] Đánh dấu hoàn thành Phase 12
+
+## PHASE 13: Rà soát Vận hành Thực tế, Gia cố Bảo mật Git/Web & Xác thực Email OTP
+- [x] Khắc phục truy vấn `orderBy('position')` cho danh mục trên thanh điều hướng (`layouts/app.blade.php`)
+- [x] Cập nhật `CompatibilityCheckerService` hỗ trợ kiểm tra tài nguyên gốc `public/` và chuẩn hóa đồng bộ `storage_path` trong `AudioSynthesizerService` & `AudioUploadService`
+- [x] Cấu hình `.htaccess`, `public/.htaccess`, `storage/app/public/.htaccess` và `public/index.php` để chạy mượt đồng thời trên cả `http://127.0.0.1:8000` và `http://localhost/webgame`, đồng thời chặn truy cập `.env`/`.git`/`storage/logs/` và cấm thực thi PHP trong thư mục Upload
+- [x] Loại bỏ hoàn toàn mật khẩu cứng khỏi `.env.example`, `config/gamehub.php`, `DatabaseSeeder.php`, `README.md`, `ADMIN_GUIDE.md` và bổ sung Rate Limiting (`throttle`) + OWASP Security Headers
+- [x] Xây dựng hệ thống Đăng nhập bằng Mã Email (OTP 6 số) & Quên mật khẩu gửi mã xác thực 6 chữ số về Email người dùng (`EmailVerificationCode`, `EmailOtpService`, `AuthOtpMail`, băm SHA-256, giới hạn tối đa 5 lần nhập sai, thời hạn 10 phút)
+- [x] Kiểm thử toàn bộ 20 bài test tự động (`20 passed, 150 assertions`) và xác nhận `HTTP 200 OK` trên mọi route
+- [x] Đánh dấu hoàn thành Phase 13

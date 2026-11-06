@@ -20,6 +20,7 @@ use App\Services\GameUpload\GameUploadService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use ZipArchive;
 
 class DatabaseSeeder extends Seeder
@@ -56,12 +57,19 @@ class DatabaseSeeder extends Seeder
         $superAdminRole->permissions()->sync($permissionIds);
         $adminRole->permissions()->sync($permissionIds);
 
-        // 2. Local Dev Accounts (from .env / config)
+        // 2. Seed Accounts (Strict .env configuration or random cryptographic password fallback)
+        $superAdminPassword = (string) config('gamehub.seed_accounts.super_admin.password', '');
+        $generatedSuperAdmin = false;
+        if ($superAdminPassword === '') {
+            $superAdminPassword = Str::random(24);
+            $generatedSuperAdmin = true;
+        }
+
         $superAdmin = User::updateOrCreate(
             ['email' => config('gamehub.seed_accounts.super_admin.email', 'admin@gamehub.local')],
             [
                 'name' => 'Tổng Quản Trị GameHub',
-                'password' => Hash::make(config('gamehub.seed_accounts.super_admin.password', 'GameHubLocal2026!')),
+                'password' => Hash::make($superAdminPassword),
                 'bio' => 'Tài khoản Super Admin quản lý toàn diện hệ thống cổng game HTML5 GameHub.',
                 'is_active' => true,
                 'total_points' => 1000,
@@ -70,11 +78,18 @@ class DatabaseSeeder extends Seeder
         );
         $superAdmin->roles()->sync([$superAdminRole->id]);
 
+        $adminPassword = (string) config('gamehub.seed_accounts.admin.password', '');
+        $generatedAdmin = false;
+        if ($adminPassword === '') {
+            $adminPassword = Str::random(24);
+            $generatedAdmin = true;
+        }
+
         $adminUser = User::updateOrCreate(
             ['email' => config('gamehub.seed_accounts.admin.email', 'moderator@gamehub.local')],
             [
                 'name' => 'Biên Tập Viên GameHub',
-                'password' => Hash::make(config('gamehub.seed_accounts.admin.password', 'GameHubAdmin2026!')),
+                'password' => Hash::make($adminPassword),
                 'bio' => 'Quản trị viên phụ trách kiểm duyệt và cập nhật kho game HTML5.',
                 'is_active' => true,
                 'total_points' => 500,
@@ -83,11 +98,18 @@ class DatabaseSeeder extends Seeder
         );
         $adminUser->roles()->sync([$adminRole->id]);
 
+        $playerPassword = (string) config('gamehub.seed_accounts.user.password', '');
+        $generatedPlayer = false;
+        if ($playerPassword === '') {
+            $playerPassword = Str::random(24);
+            $generatedPlayer = true;
+        }
+
         $playerUser = User::updateOrCreate(
             ['email' => config('gamehub.seed_accounts.user.email', 'player@gamehub.local')],
             [
                 'name' => 'Minh Hoàng Gamer',
-                'password' => Hash::make(config('gamehub.seed_accounts.user.password', 'GameHubPlayer2026!')),
+                'password' => Hash::make($playerPassword),
                 'bio' => 'Đam mê chinh phục điểm số cao trong các tựa game Arcade & Giải đố HTML5.',
                 'is_active' => true,
                 'total_points' => 150,
@@ -95,6 +117,19 @@ class DatabaseSeeder extends Seeder
             ]
         );
         $playerUser->roles()->sync([$userRole->id]);
+
+        if ($this->command && ($generatedSuperAdmin || $generatedAdmin || $generatedPlayer)) {
+            $this->command->warn('Một số mật khẩu SEED_* chưa được khai báo trong .env. Hệ thống đã sinh mật khẩu ngẫu nhiên an toàn:');
+            if ($generatedSuperAdmin) {
+                $this->command->line("  - Super Admin ({$superAdmin->email}): {$superAdminPassword}");
+            }
+            if ($generatedAdmin) {
+                $this->command->line("  - Admin ({$adminUser->email}): {$adminPassword}");
+            }
+            if ($generatedPlayer) {
+                $this->command->line("  - Player ({$playerUser->email}): {$playerPassword}");
+            }
+        }
 
         // 3. Categories & Tags
         $categoriesMap = [

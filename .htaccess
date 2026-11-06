@@ -1,5 +1,23 @@
+# Tắt liệt kê thư mục (Directory Listing)
+Options -Indexes
+
+# Chặn truy cập trực tiếp vào các tệp cấu hình, mã nguồn, tài liệu nội bộ và tệp ẩn
+<FilesMatch "(^\.|\.(env|git|sql|sqlite|log|md|lock|yaml|yml)$|^(composer\.json|package\.json|phpunit\.xml|artisan|vite\.config\.js)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # Chặn truy cập trực tiếp vào các thư mục hệ thống nội bộ nếu DocumentRoot trỏ vào thư mục gốc
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|storage/(app|framework|logs)|tests|vendor)(/.*)?$ - [F,L]
+
+    # Chuyển tiếp toàn bộ yêu cầu hợp lệ vào thư mục public/
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
-

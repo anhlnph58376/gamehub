@@ -82,10 +82,24 @@ Cổng giao tiếp giữa Iframe game và trang chủ được bảo vệ ở c�
    - Middleware [`RoleMiddleware`](file:///h:/laragon/www/webgame/app/Http/Middleware/RoleMiddleware.php) kiểm tra vai trò `super-admin`, `admin`, `user`.
    - Middleware [`EnsureUserIsActive`](file:///h:/laragon/www/webgame/app/Http/Middleware/EnsureUserIsActive.php) kiểm tra trạng thái tài khoản (`active`, `locked`, `banned`) ở mỗi request; nếu tài khoản bị khóa trong khi đang đăng nhập, hệ thống lập tức hủy phiên và đăng xuất.
 2. **HTTP Security Headers ([`SecurityHeadersMiddleware`](file:///h:/laragon/www/webgame/app/Http/Middleware/SecurityHeadersMiddleware.php))**:
+   - Ẩn hoàn toàn `X-Powered-By` để chống dò phiên bản máy chủ (Server Fingerprinting).
    - `X-Content-Type-Options: nosniff`
-   - `X-Frame-Options: SAMEORIGIN`
+   - `X-Frame-Options: SAMEORIGIN` & `Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'`
    - `Referrer-Policy: strict-origin-when-cross-origin`
-   - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
-3. **Nhật ký Kiểm toán (`audit_logs`)**:
-   - Mọi thao tác quản trị nhạy cảm (upload phiên bản mới, phát hành game, rollback phiên bản, khóa tài khoản, xóa đánh giá) đều được ghi nhận đầy đủ vào bảng `audit_logs` kèm theo địa chỉ IP, User-Agent, dữ liệu trước và sau thay đổi.
+   - `X-Permitted-Cross-Domain-Policies: none`
+   - `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()`
+   - `Strict-Transport-Security: max-age=31536000; includeSubDomains` (tự động kích hoạt trên HTTPS / Production).
+3. **Giới hạn Tần suất Chống Brute-Force & Spam (`Throttle` trong [`routes/web.php`](file:///h:/laragon/www/webgame/routes/web.php))**:
+   - Đăng nhập (`POST /dang-nhap`): `throttle:6,1` (tối đa 6 lần/phút/IP).
+   - Đăng ký & Quên mật khẩu (`POST /dang-ky`, `POST /quen-mat-khau`): `throttle:5,1`.
+   - Gửi báo lỗi & Liên hệ (`POST /games/{game}/report`, `POST /lien-he`): `throttle:10,1`.
+   - Đánh giá & Cập nhật hồ sơ (`POST /games/{game}/reviews`, `PUT /tai-khoan`): `throttle:15,1`.
+4. **Chặn Thực Thi Mã Độc Trong Thư Mục Upload ([`storage/app/public/.htaccess`](file:///h:/laragon/www/webgame/storage/app/public/.htaccess))**:
+   - Vô hiệu hóa `ExecCGI`, tắt `php_flag engine off`, và chặn truy cập mọi tệp có đuôi thực thi (`.php`, `.phtml`, `.phar`, `.sh`, `.exe`, `.bat`, `.cmd`, `.env`, `.htaccess`) bên trong `storage/app/public/`.
+   - Tệp [`.htaccess`](file:///h:/laragon/www/webgame/.htaccess) gốc chặn truy cập trực tiếp vào `.env`, `.git`, `composer.json`, `phpunit.xml`, `artisan` và các thư mục nội bộ (`app/`, `config/`, `database/`, `storage/logs/`, `vendor/`).
+5. **Quản lý Bí mật khi Đưa lên Git ([`.gitignore`](file:///h:/laragon/www/webgame/.gitignore) & [`.env.example`](file:///h:/laragon/www/webgame/.env.example))**:
+   - Không lưu cứng bất kỳ mật khẩu mặc định nào trong mã nguồn ([`config/gamehub.php`](file:///h:/laragon/www/webgame/config/gamehub.php), [`DatabaseSeeder.php`](file:///h:/laragon/www/webgame/database/seeders/DatabaseSeeder.php)) hay tài liệu Markdown.
+   - Tệp `.env`, khóa bảo mật (`*.key`, `*.pem`), bản sao lưu CSDL (`*.sql`, `*.sqlite`) và tài nguyên sinh tự động đều được loại trừ trong [`.gitignore`](file:///h:/laragon/www/webgame/.gitignore).
+6. **Nhật ký Kiểm toán (`audit_logs`)**:
+   - Mọi thao tác quản trị nhạy cảm (upload phiên bản mới, phát hành game, rollback phiên bản, tải lên/xóa âm thanh, khóa tài khoản, xóa đánh giá) đều được ghi nhận đầy đủ vào bảng `audit_logs` kèm theo địa chỉ IP, User-Agent, dữ liệu trước và sau thay đổi.
 

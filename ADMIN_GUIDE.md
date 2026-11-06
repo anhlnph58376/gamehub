@@ -7,10 +7,11 @@ Tài liệu này hướng dẫn chi tiết cách vận hành hệ thống **Game
 ## 1. Đăng nhập và Truy cập Khu vực Quản trị
 
 1. Truy cập trang đăng nhập tại `/dang-nhap` (hoặc `/login`).
-2. Sử dụng tài khoản Quản trị viên mặc định (được cấu hình trong `.env` và `DatabaseSeeder.php`):
-   - **Tổng Quản Trị (Super Admin)**: `admin@gamehub.local` / Mật khẩu: `GameHubLocal2026!`
-   - **Biên Tập Viên (Admin)**: `moderator@gamehub.local` / Mật khẩu: `GameHubAdmin2026!`
-   - **Người chơi (Player)**: `player@gamehub.local` / Mật khẩu: `GameHubPlayer2026!`
+2. Sử dụng thông tin tài khoản Quản trị viên được cấu hình riêng trong tệp `.env` của máy chủ (tuyệt đối không lưu mật khẩu thực tế lên Git):
+   - **Tổng Quản Trị (Super Admin)**: Khai báo qua `SEED_SUPER_ADMIN_EMAIL` và `SEED_SUPER_ADMIN_PASSWORD` trong `.env`.
+   - **Biên Tập Viên (Admin)**: Khai báo qua `SEED_ADMIN_EMAIL` và `SEED_ADMIN_PASSWORD` trong `.env`.
+   - **Người chơi (Player)**: Khai báo qua `SEED_USER_EMAIL` và `SEED_USER_PASSWORD` trong `.env`.
+   *(Lưu ý: Nếu các biến mật khẩu để trống khi chạy `php artisan db:seed`, hệ thống sẽ tự động sinh mật khẩu ngẫu nhiên 24 ký tự và in một lần duy nhất trên giao diện dòng lệnh CLI).*
 3. Sau khi đăng nhập, nhấn vào nút **"Quản trị"** trên thanh điều hướng góc phải hoặc truy cập trực tiếp đường dẫn `/admin`.
 
 ---

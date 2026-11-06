@@ -1,24 +1,54 @@
+# Logs & Debug
 *.log
-.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & Secrets (NEVER COMMIT)
 .env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-/.fleet
-/.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
+.env.*
+!.env.example
 /auth.json
+/storage/*.key
+*.pem
+*.key
+*.crt
+
+# Database Dumps & Temporary Files
+*.sql
+*.sql.gz
+*.sqlite
+*.sqlite-journal
+*.bak
+/query
+
+# Dependencies & Build Artifacts
 /node_modules
+/vendor
 /public/build
 /public/hot
 /public/storage
-/storage/*.key
+
+# Generated Sample Game ZIPs & Uploaded Storage Assets
+/games/sample-games/*.zip
+/storage/app/*.zip
+/storage/app/public/games/*
+/storage/app/public/audio/*
+!/storage/app/public/.htaccess
+
+# Testing & IDE Caches
+.phpunit.result.cache
+/.phpunit.cache
+.phpactor.json
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
 /storage/pail
-/vendor
+
+# OS & Homestead
+.DS_Store
+Thumbs.db
 Homestead.json
 Homestead.yaml
-Thumbs.db

@@ -9,21 +9,20 @@ return [
         'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'phar',
         'exe', 'bat', 'cmd', 'sh', 'bash', 'cgi', 'pl', 'py', 'rb',
         'dll', 'so', 'dylib', 'msi', 'vbs', 'ps1', 'htaccess', 'htpasswd',
-        'env', 'ini', 'config', 'jsp', 'asp', 'aspx',
+        'env', 'ini', 'config', 'jsp', 'asp', 'aspx', 'sql', 'sqlite',
     ],
     'seed_accounts' => [
         'super_admin' => [
             'email' => env('SEED_SUPER_ADMIN_EMAIL', 'admin@gamehub.local'),
-            'password' => env('SEED_SUPER_ADMIN_PASSWORD', 'GameHubLocal2026!'),
+            'password' => env('SEED_SUPER_ADMIN_PASSWORD'),
         ],
         'admin' => [
             'email' => env('SEED_ADMIN_EMAIL', 'moderator@gamehub.local'),
-            'password' => env('SEED_ADMIN_PASSWORD', 'GameHubAdmin2026!'),
+            'password' => env('SEED_ADMIN_PASSWORD'),
         ],
         'user' => [
             'email' => env('SEED_USER_EMAIL', 'player@gamehub.local'),
-            'password' => env('SEED_USER_PASSWORD', 'GameHubPlayer2026!'),
+            'password' => env('SEED_USER_PASSWORD'),
         ],
     ],
 ];
-
